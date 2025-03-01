@@ -60,6 +60,8 @@ export default abstract class extends Command {
   private _apiModelId?: string
   private _apiUrl?: string
   private _herokuAI?: APIClient
+  private _inferenceActivityKey?: string
+  private _inferenceActivityUrl?: string
   private _defaultInferenceHost: string = process.env.HEROKU_INFERENCE_HOST || 'us.inference.heroku.com'
 
   protected async configureHerokuAIClient(addonIdentifier?: string, appIdentifier?: string): Promise<void> {
@@ -81,6 +83,8 @@ export default abstract class extends Command {
       this._apiModelId = configVars[this.apiModelIdConfigVarName] ||
         this.addon.plan.name?.split(':')[1] // Fallback to plan name (e.g. "heroku-inference:claude-3-haiku" => "claude-3-haiku"
       this._apiUrl = configVars[this.apiUrlConfigVarName]
+      this._inferenceActivityKey = configVars.INFERENCE_ACTIVITY_KEY
+      this._inferenceActivityUrl = configVars.INFERENCE_ACTIVITY_URL
       this._addonServiceSlug = this.addon.addon_service.name
       this._addonResourceId = this.addon.id
       this._herokuAI.defaults.host = stripHttps(this.apiUrl)
@@ -322,5 +326,19 @@ export default abstract class extends Command {
 
   get defaultInferenceHost(): string {
     return this._defaultInferenceHost
+  }
+
+  get inferenceActivityKey(): string {
+    if (this._inferenceActivityKey)
+      return this._inferenceActivityKey
+
+    ux.error('INFERENCE_ACTIVITY_KEY not found in config vars.', {exit: 1})
+  }
+
+  get inferenceActivityUrl(): string {
+    if (this._inferenceActivityUrl)
+      return this._inferenceActivityUrl
+
+    ux.error('INFERENCE_ACTIVITY_URL not found in config vars.', {exit: 1})
   }
 }

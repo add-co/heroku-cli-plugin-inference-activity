@@ -7,8 +7,10 @@ import {
   EmbeddingResponse,
   ImageResponse,
   ModelList,
-} from '../../../lib/ai/types'
+  ModelListItem,
+} from '../../../lib/types'
 import Command from '../../../lib/base'
+import {redactRequest, redactResponse, logInferenceActivity} from '../../../lib/inference-activity'
 
 export default class Call extends Command {
   static args = {
@@ -20,8 +22,8 @@ export default class Call extends Command {
 
   static description = 'make an inference request to a specific AI model resource'
   static examples = [
-    'heroku ai:models:call my_llm --app my-app --prompt "What is the meaning of life?"',
-    'heroku ai:models:call diffusion --app my-app --prompt "Generate an image of a sunset" --opts \'{"quality":"hd"}\' -o sunset.png',
+    'heroku inference-activity:models:call my_llm --app my-app --prompt "What is the meaning of life?"',
+    'heroku inference-activity:models:call diffusion --app my-app --prompt "Generate an image of a sunset" --opts \'{"quality":"hd"}\' -o sunset.png',
   ]
 
   static flags = {
@@ -70,7 +72,7 @@ export default class Call extends Command {
     await this.configureHerokuAIClient(modelResource, app)
     const options = this.parseOptions(optfile, opts)
     // Not sure why `type` is an array in ModelListItem, we use the type from the first entry.
-    const modelType = availableModels.find(m => m.model_id === this.apiModelId)?.type[0]
+    const modelType = availableModels.find((m: ModelListItem) => m.model_id === this.apiModelId)?.type[0]
 
     // Note: modelType will always be lower case.  MarcusBlankenship 11/13/24.
     switch (modelType) {
@@ -145,7 +147,9 @@ export default class Call extends Command {
   }
 
   private async createChatCompletion<T = unknown>(prompt: string, options = {} as T) {
-    const {body: chatCompletionResponse} = await this.herokuAI.post<ChatCompletionResponse>('/v1/chat/completions', {
+    const startTime = new Date()
+
+    const response = await this.herokuAI.post<ChatCompletionResponse>('/v1/chat/completions', {
       body: {
         ...options,
         model: this.apiModelId,
@@ -157,7 +161,39 @@ export default class Call extends Command {
       headers: {authorization: `Bearer ${this.apiKey}`},
     })
 
-    return chatCompletionResponse
+    try {
+      const duration = Date.now() - startTime.getTime()
+
+      const activityData = {
+        timestamp: startTime.getTime(),
+        response_time: duration,
+        status_code: 200, // Successful response
+        status_message: 'OK',
+        request: redactRequest({
+          method: 'POST',
+          url: '/v1/chat/completions',
+          body: {
+            ...options,
+            model: this.apiModelId,
+            messages: [{
+              role: 'user',
+              content: prompt,
+            }],
+          },
+        }),
+        response: redactResponse(response, '/v1/chat/completions'),
+      }
+
+      await logInferenceActivity(
+        activityData,
+        this.inferenceActivityUrl,
+        this.inferenceActivityKey,
+      )
+    } catch (error) {
+      console.error('Failed to log chat completion activity:', error instanceof Error ? error.message : 'Unknown error')
+    }
+
+    return response.body
   }
 
   private async displayChatCompletion(completion: ChatCompletionResponse, output?: string, json = false) {
@@ -171,7 +207,9 @@ export default class Call extends Command {
   }
 
   private async generateImage<T = unknown>(prompt: string, options = {} as T) {
-    const {body: imageResponse} = await this.herokuAI.post<ImageResponse>('/v1/images/generations', {
+    const startTime = new Date()
+
+    const response = await this.herokuAI.post<ImageResponse>('/v1/images/generations', {
       body: {
         ...options,
         model: this.apiModelId,
@@ -180,7 +218,36 @@ export default class Call extends Command {
       headers: {authorization: `Bearer ${this.apiKey}`},
     })
 
-    return imageResponse
+    try {
+      const duration = Date.now() - startTime.getTime()
+
+      const activityData = {
+        timestamp: startTime.getTime(),
+        response_time: duration,
+        status_code: 200,
+        status_message: 'OK',
+        request: redactRequest({
+          method: 'POST',
+          url: '/v1/images/generations',
+          body: {
+            ...options,
+            model: this.apiModelId,
+            prompt,
+          },
+        }),
+        response: redactResponse(response, '/v1/images/generations'),
+      }
+
+      await logInferenceActivity(
+        activityData,
+        this.inferenceActivityUrl,
+        this.inferenceActivityKey,
+      )
+    } catch (error) {
+      console.error('Failed to log image generation activity:', error instanceof Error ? error.message : 'Unknown error')
+    }
+
+    return response.body
   }
 
   private async displayImageResult(image: ImageResponse, output?: string, json = false) {
@@ -206,7 +273,9 @@ export default class Call extends Command {
   }
 
   private async createEmbedding<T = unknown>(input: string, options = {} as T) {
-    const {body: EmbeddingResponse} = await this.herokuAI.post<EmbeddingResponse>('/v1/embeddings', {
+    const startTime = new Date()
+
+    const response = await this.herokuAI.post<EmbeddingResponse>('/v1/embeddings', {
       body: {
         ...options,
         model: this.apiModelId,
@@ -215,7 +284,36 @@ export default class Call extends Command {
       headers: {authorization: `Bearer ${this.apiKey}`},
     })
 
-    return EmbeddingResponse
+    try {
+      const duration = Date.now() - startTime.getTime()
+
+      const activityData = {
+        timestamp: startTime.getTime(),
+        response_time: duration,
+        status_code: 200,
+        status_message: 'OK',
+        request: redactRequest({
+          method: 'POST',
+          url: '/v1/embeddings',
+          body: {
+            ...options,
+            model: this.apiModelId,
+            input,
+          },
+        }),
+        response: redactResponse(response, '/v1/embeddings'),
+      }
+
+      await logInferenceActivity(
+        activityData,
+        this.inferenceActivityUrl,
+        this.inferenceActivityKey,
+      )
+    } catch (error) {
+      console.error('Failed to log embedding activity:', error instanceof Error ? error.message : 'Unknown error')
+    }
+
+    return response.body
   }
 
   private async displayEmbedding(embedding: EmbeddingResponse, output?: string, json = false) {

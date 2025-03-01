@@ -6,7 +6,7 @@ import heredoc from 'tsheredoc'
 import {stderr, stdout} from 'stdout-stderr'
 import {runCommand} from '../run-command'
 import BaseCommand from '../../src/lib/base'
-import * as AI from '../../src/lib/ai/types'
+import * as AI from '../../src/lib/types'
 import stripAnsi from '../helpers/strip-ansi'
 import {
   addon1, addon1Attachment1,

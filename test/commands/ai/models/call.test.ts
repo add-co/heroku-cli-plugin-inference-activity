@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import sinon from 'sinon'
 import {stderr, stdout} from 'stdout-stderr'
 import heredoc from 'tsheredoc'
-import Cmd from '../../../../src/commands/ai/models/call'
+import Cmd from '../../../../src/commands/inference-activity/models/call'
 import {
   addon3,
   addon3Attachment1,
@@ -31,6 +31,7 @@ describe('ai:models:call', function () {
   let api: nock.Scope
   let defaultInferenceApi: nock.Scope
   let inferenceApi: nock.Scope
+  let inferenceActivityApi: nock.Scope
   let sandbox: sinon.SinonSandbox
 
   beforeEach(async function () {
@@ -41,6 +42,19 @@ describe('ai:models:call', function () {
       .get('/available-models')
       .reply(200, availableModels)
 
+    inferenceActivityApi = nock('https://inference-activity.heroku.com')
+      .post('/v1/activity', body => {
+        // Verify required fields exist but don't check exact values since timestamps will vary
+        return body.timestamp &&
+          body.response_time &&
+          body.status_code &&
+          body.status_message &&
+          body.request &&
+          body.response
+      })
+      .optionally() // Make the request optional since some error cases won't make the request
+      .reply(200)
+
     sandbox.replaceGetter(client.APIClient.prototype, 'auth', () => '1234')
   })
 
@@ -49,6 +63,7 @@ describe('ai:models:call', function () {
     api.done()
     defaultInferenceApi.done()
     inferenceApi.done()
+    inferenceActivityApi.done()
     nock.cleanAll()
     sandbox.restore()
     sinon.restore()
@@ -65,6 +80,8 @@ describe('ai:models:call', function () {
           INFERENCE_MAROON_KEY: 's3cr3t_k3y',
           INFERENCE_MAROON_MODEL_ID: 'claude-3-5-sonnet-latest',
           INFERENCE_MAROON_URL: 'inference-eu.heroku.com',
+          INFERENCE_ACTIVITY_URL: 'https://inference-activity.heroku.com/v1/activity',
+          INFERENCE_ACTIVITY_KEY: 'activity_k3y',
         })
     })
 
@@ -285,6 +302,8 @@ describe('ai:models:call', function () {
           DIFFUSION_KEY: 's3cr3t_k3y',
           DIFFUSION_MODEL_ID: 'stable-image-ultra',
           DIFFUSION_URL: 'inference-eu.heroku.com',
+          INFERENCE_ACTIVITY_URL: 'https://inference-activity.heroku.com/v1/activity',
+          INFERENCE_ACTIVITY_KEY: 'activity_k3y',
         })
     })
 
@@ -483,6 +502,8 @@ describe('ai:models:call', function () {
           EMBEDDINGS_KEY: 's3cr3t_k3y',
           EMBEDDINGS_MODEL_ID: 'cohere-embed-multilingual',
           EMBEDDINGS_URL: 'inference-eu.heroku.com',
+          INFERENCE_ACTIVITY_URL: 'https://inference-activity.heroku.com/v1/activity',
+          INFERENCE_ACTIVITY_KEY: 'activity_k3y',
         })
     })
 

@@ -1,15 +1,16 @@
 {
-  "name": "@heroku/plugin-ai",
-  "description": "Heroku CLI plugin for Heroku AI add-on",
-  "version": "0.0.9",
-  "author": "Heroku",
-  "bugs": "https://github.com/heroku/heroku-cli-plugin-ai/issues",
+  "name": "inference-activity",
+  "description": "Heroku CLI plugin for Inference Activity add-on",
+  "version": "0.0.1",
+  "author": "ADD CO",
+  "bugs": "https://github.com/add-co/heroku-cli-plugin-inference-activity/issues",
   "dependencies": {
     "@heroku-cli/color": "^2",
     "@heroku-cli/command": "^11.5.0",
     "@heroku-cli/schema": "^1.0.25",
     "@oclif/core": "^2.16.0",
     "@oclif/plugin-help": "^5",
+    "axios": "^1.8.1",
     "open": "^8.4.2",
     "printf": "^0.6.1",
     "tsheredoc": "^1"
@@ -46,7 +47,7 @@
   "files": [
     "/dist"
   ],
-  "homepage": "https://github.com/heroku/heroku-cli-plugin-ai",
+  "homepage": "https://github.com/add-co/heroku-cli-plugin-inference-activity",
   "keywords": [
     "heroku-plugin",
     "oclif"
@@ -60,11 +61,11 @@
     ],
     "topics": {
       "ai": {
-        "description": "manage Heroku AI models"
+        "description": "manage inference activity"
       }
     }
   },
-  "repository": "heroku/heroku-cli-plugin-ai",
+  "repository": "add-co/heroku-cli-plugin-inference-activity",
   "scripts": {
     "build": "rm -rf dist && tsc -b && oclif manifest && oclif readme && mv oclif.manifest.json ./dist/oclif.manifest.json && cp README.md ./dist/README.md",
     "lint": "eslint . --ext .ts --config .eslintrc.json",
